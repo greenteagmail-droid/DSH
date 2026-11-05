@@ -1,0 +1,9 @@
+{
+  "entry": {
+    "name": "dsh-bionic-intelligence",
+    "inject": ["sessionController", "tools", "attachments"]
+  },
+  "name": "dsh-bionic-intelligence",
+  "version": "1.0.0",
+  "description": "Bionic Intelligence（仿生智能）— screen memory plus a floating question window: record the screen locally, answer questions by recalling past frames, and speak the reply."
+}
