@@ -293,8 +293,8 @@ class Bubble:
         name_w = self._text_font(9, True).measure(self.title)
         hint = self._hint_now()
         hint_w = self._text_font(10).measure(hint) if hint else 0
-        # 输入框至少能放下提示，再多留 26px 呼吸位
-        field_w = max(self.px(120), hint_w + self.px(26))
+        # 输入框至少能放下提示，再多留 40px 呼吸位（中文字宽估算有误差，留够）
+        field_w = max(self.px(120), hint_w + self.px(64))
         total = (pad * 2            # 左右内边距
                  + r * 2            # 状态灯
                  + self.px(8)       # 灯与名字
@@ -546,9 +546,19 @@ class Bubble:
             self.canvas.itemconfigure(self.entry_id,
                                       state="hidden" if show_hint else "normal")
         if show_hint:
-            self.canvas.create_text(well_x1 + self.px(12), cy, text=hint_text, anchor="w",
+            # 提示再长也不能画到药丸外面：先按可用宽度截断，再加 width 兜底。
+            # 光靠 measure 不够——不同字体渲染宽度有偏差，Tk 的 width 会强制换行，
+            # 多出来的行被窗口裁掉，视觉上就是干净的截断。
+            font = self._text_font(10)
+            avail = max(self.px(20), int(well_w - self.px(24)))
+            text = hint_text
+            if font.measure(text) > avail:
+                while text and font.measure(text + "…") > avail:
+                    text = text[:-1]
+                text = (text + "…") if text else "…"
+            self.canvas.create_text(well_x1 + self.px(12), cy, text=text, anchor="w",
                                     fill="#4f5664" if voice_locked else "#9aa3b2",
-                                    font=self._text_font(10))
+                                    font=font)
 
     # -------------------------------------------------------------- 交互
 
@@ -693,10 +703,10 @@ class Bubble:
         # 只看"此刻"焦点在不在输入框。这里**只提醒、不设锁**：
         # lock 的语义是"有一条消息在等回复"，没发消息就设锁会永远解不开。
         if self.field_focused:
-            self._say("在打字，先点一下空白再说话")
+            self._say("打字中，点空白取消")
             return
         if self.lock == "text":
-            self._say("上一条还在等回复")
+            self._say("等回复…")
             return
         if self.icon_state == "recording":
             self._stop_mic()
@@ -920,7 +930,7 @@ class Bubble:
         # 正常几秒就回，超过这个数基本是这条没送出去。
         if sent and now > sent + 45.0:
             self.lock = None
-            self._say("刚才那条没送出去，再说一次")
+            self._say("没送出去，再说一次")
             self._set_state("idle")
             return
         info = self._reply()
