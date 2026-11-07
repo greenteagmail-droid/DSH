@@ -292,7 +292,9 @@ class Bubble:
         pad = self.px(10)
         r = self.px(BAR_DOT) / 2.0
         name_w = self._text_font(9, True).measure(self.title)
-        hint = self._hint_now()
+        # 只有提示真的会显示时才占宽度，否则窗口白白撑宽
+        show_hint = (not self.field_focused) and (not self.field.get())
+        hint = self._hint_now() if show_hint else ""
         hint_w = self._text_font(10).measure(hint) if hint else 0
         # 输入框至少能放下提示，再多留 40px 呼吸位（中文字宽估算有误差，留够）
         field_w = max(self.px(120), hint_w + self.px(64))
@@ -701,12 +703,8 @@ class Bubble:
     # -------------------------------------------------------------- 麦克风
 
     def _mic(self):
-        # 用 _press 里记下的"按下前"焦点状态：_grab 会把焦点交出去，
-        # 这里再看 field_focused 就已经是 False 了，永远不成立。
-        # 这里**只提醒、不设锁**：lock 的语义是"有一条消息在等回复"。
-        if getattr(self, "was_typing", False) or self.field_focused:
-            self._say("打字中，点空白取消")
-            return
+        # 麦克风优先：输入框里有字也能直接说，不拦、不提示。
+        # 只在「上一条还在等回复」或「正在录/转写」时才挡一下。
         if self.lock == "text":
             self._say("等回复…")
             return
