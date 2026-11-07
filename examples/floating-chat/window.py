@@ -877,7 +877,11 @@ class Bubble:
             return
         sent = self.sent_at or 0
         now = time.time()
-        if sent and now > sent + 180.0:
+        # 45 秒还没等到回复就放开话筒：等太久用户只会以为卡死了。
+        # 正常几秒就回，超过这个数基本是这条没送出去。
+        if sent and now > sent + 45.0:
+            self.lock = None
+            self._say("刚才那条没送出去，再说一次")
             self._set_state("idle")
             return
         info = self._reply()
