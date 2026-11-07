@@ -36,7 +36,8 @@
     "LICENSE"
   ],
   "peerDependencies": {
-    "@deepseek-ai/dsh-tools": ">=0.1.0-rc.7"
+    "@deepseek-ai/dsh-tools": ">=0.1.0-rc.7",
+    "@deepseek-ai/schemastery": "~3.18.5"
   },
   "peerDependenciesMeta": {
     "@deepseek-ai/dsh-tools": {

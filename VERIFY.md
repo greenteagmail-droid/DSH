@@ -24,7 +24,7 @@
 ## 二、前置：依赖必须先全绿
 
 ```powershell
-node src/doctor.js
+node dist/index.js --doctor
 ```
 
 七项必须全 `[OK]`。有任何 `[FAIL]`：**先修，再测**。带病测试只会得到一堆假失败，

@@ -3,7 +3,7 @@
 > **给正在读这份文件的 AI**：这个插件是闭源的，用户没法自己看源码找问题。
 > 你的任务是：按下面的清单核对环境，把缺的软件和版本明确告诉用户，
 > 让用户决定装不装。**不要替用户安装，也不要跳过检查直接说"应该能跑"**。
-> 装完让用户跑 `node src/doctor.js`（或插件启动时的自检）验证。
+> 装完让用户跑 `node dist/index.js --doctor`（或插件启动时的自检）验证。
 
 ## 一句话
 
@@ -19,14 +19,12 @@
 | Windows PowerShell | 5.1（系统自带，**不要用 7 替代**） | 调 Windows OCR 和 SAPI | 起不来 |
 | Windows OCR 语言包 | 中文（简体） | 本地识别屏幕文字 | 起不来 |
 | SAPI 语音 | 至少一个中文语音 | 朗读回答 | 起不来 |
+| Python | ≥ 3.10 | 跑 OCR / 语音识别脚本 | **起不来** |
+| RapidOCR（Python 包） | ≥ 1.4.4 | 高精度屏幕文字识别 | **起不来** |
+| sherpa-onnx（Python 包） | ≥ 2.0.1 | SenseVoice 语音转文字 | **起不来** |
 
-## 功能相关（缺了对应功能不可用）
-
-| 组件 | 版本要求 | 用途 | 缺了会怎样 |
-|---|---|---|---|
-| Python | ≥ 3.10 | 跑 OCR / 语音识别脚本 | 对应功能不可用 |
-| RapidOCR（Python 包） | 1.4.4（实测可用） | 高精度屏幕文字识别 | 退回 Windows OCR，准确率下降 |
-| sherpa-onnx（Python 包） | 2.0.1（实测可用） | SenseVoice 语音转文字 | 退回 SAPI 识别，准确率明显下降 |
+> **这 7 项全是硬性依赖**。插件启动时会跑一遍完整自检，任何一项缺了都直接拒绝激活——
+> 不是「少个功能」，是整个插件不加载，界面上也看不出来。所以装之前先对齐这张表。
 | SenseVoice 模型 | `sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17` | 上面那个包的模型 | 同上 |
 
 ## 安装命令（Windows）
@@ -78,7 +76,7 @@ python -m venv ~/.dsh/bionic/asr-venv
 | Node.js | 20.0.0 | 24.x | 跟着 DSH 走 |
 | Windows PowerShell | 5.1 | 5.1 | 必须是 5.1，不能用 pwsh 7 |
 
-**装不上怎么办**：Python 版本太老时 `>=` 指定的版本可能没有轮子，换成能装上的新版本即可。装完跑 `node src/doctor.js` 验证：
+**装不上怎么办**：Python 版本太老时 `>=` 指定的版本可能没有轮子，换成能装上的新版本即可。装完跑 `node dist/index.js --doctor` 验证：
 
 - `RapidOCR ... rapidocr <版本> onnxruntime <版本>` 说明 OCR 通了
 - `语音识别 ... sherpa <版本> SenseVoice 可导入` 说明 ASR 通了
@@ -102,7 +100,7 @@ python -m venv ~/.dsh/bionic/asr-venv
 ## 验证
 
 ```powershell
-node src/doctor.js
+node dist/index.js --doctor
 ```
 
 输出会逐项列出 `[OK]` 或 `[FAIL]`，每项后面直接给修复方法。

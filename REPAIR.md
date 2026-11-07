@@ -18,7 +18,7 @@
 ## 第二步：跑自检，拿到确定结论
 
 ```powershell
-node src/doctor.js
+node dist/index.js --doctor
 ```
 
 七项检查，每项要么 `[OK]` 要么 `[FAIL]`，`[FAIL]` 后面直接写了修法。**照抄结果**，
