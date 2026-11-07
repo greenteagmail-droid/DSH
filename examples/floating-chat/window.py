@@ -49,6 +49,7 @@ MIC_WAV = os.path.join(DATA, "mic.wav")
 MIC_STOP = os.path.join(DATA, "mic.stop")
 MIC_START = os.path.join(DATA, "mic.start")
 TEXT_START = os.path.join(DATA, "text.start")
+NAME_FILE = os.path.join(DATA, "name")
 MIC_STATE = os.path.join(DATA, "mic.state")
 CLOSED = os.path.join(DATA, "window.closed")
 REPLY_AT = os.path.join(DATA, "replied.at")
@@ -239,6 +240,7 @@ class Bubble:
         self.win.after(900, self._reply_loop)
         self.win.after(2000, self._host_loop)
         self.win.after(120, self._pump)
+        self.win.after(4000, self._name_loop)
 
     # -------------------------------------------------------------- 基础
 
@@ -552,6 +554,9 @@ class Bubble:
 
     def _on_field_focus_out(self, _event=None):
         self.field_focused = False
+        # 「在打字…」是一次性提醒，失焦就该消失，不能一直挂在输入框里
+        if self.hint.startswith("在打字"):
+            self.hint = ""
         if not self.rendering:
             try:
                 self._render()
@@ -646,14 +651,13 @@ class Bubble:
     # -------------------------------------------------------------- 麦克风
 
     def _mic(self):
-        # 只看"此刻"焦点在不在输入框：按钮的 tag 绑定先于画布的 _grab，
-        # 用上一拍记下来的标志会读到过期值，导致第一下空反应。
+        # 只看"此刻"焦点在不在输入框。这里**只提醒、不设锁**：
+        # lock 的语义是"有一条消息在等回复"，没发消息就设锁会永远解不开。
         if self.field_focused:
-            self.lock = "text"
             self._say("在打字，先点一下空白再说话")
             return
         if self.lock == "text":
-            self._say("等我把这条回完")
+            self._say("上一条还在等回复")
             return
         if self.icon_state == "recording":
             self._stop_mic()
@@ -900,6 +904,8 @@ class Bubble:
         """交还焦点。无边框窗口里 canvas.focus_set() 经常抢不到焦点，
         所以标志位也要立刻落下来，否则话筒会一直按"文本在用"锁着。"""
         self.field_focused = False
+        if self.hint.startswith("在打字"):
+            self.hint = ""
         try:
             self.win.focus_set()
         except Exception:
@@ -940,6 +946,10 @@ class Bubble:
         if not self.dragging:
             return
         self.dragging = False
+        # 没有消息在途的文本锁一律清掉：按钮点击带出的假拖动也要清，
+        # 否则 lock 会一直挂着一个不存在的"等待回复"，话筒永远灰着。
+        if self.lock == "text" and self.icon_state != "waiting":
+            self.lock = None
         if getattr(self, "suppress_stick", False):
             # 这是点按钮带出来的假拖动，别做贴边
             self.suppress_stick = False
@@ -1096,6 +1106,25 @@ class Bubble:
                 return
         try:
             self.win.after(2000, self._host_loop)
+        except Exception:
+            pass
+
+    def _name_loop(self):
+        """运行中改名也生效：插件会把解析到的名字写进 name 文件，这里跟着换。"""
+        try:
+            with open(NAME_FILE, "r", encoding="utf-8") as f:
+                name = f.read().strip()
+            if name and name != self.title:
+                self.title = name[:24]
+                try:
+                    self.win.title(self.title)
+                except Exception:
+                    pass
+                self._render()
+        except Exception:
+            pass
+        try:
+            self.win.after(4000, self._name_loop)
         except Exception:
             pass
 
