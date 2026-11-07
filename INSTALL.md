@@ -115,3 +115,26 @@ node dist/index.js --doctor
 
 不要用「可能」「大概」「应该」来描述检查结果——doctor 的输出是确定的，
 直接照抄哪项 OK、哪项 FAIL。
+
+## 更新到最新版
+
+不用重装。在插件目录里跑：
+
+`powershell
+node scripts/update.mjs
+`
+
+它会从 GitHub 主分支拉最新代码覆盖程序文件，**不动** ~/.dsh/bionic 里的数据。
+跑完重启 DSH 生效。
+
+只看看会更新到哪一版、不动文件：
+
+`powershell
+node scripts/update.mjs --dry-run
+`
+
+网络不通时它会自动读系统代理（Clash 之类）。也可以手动下载：
+
+`
+https://github.com/greenteagmail-droid/DSH/archive/refs/heads/main.tar.gz
+`
