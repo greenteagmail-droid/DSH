@@ -215,6 +215,7 @@ class Bubble:
         self.had_text_focus = False
         self.lock = None
         self.rendering = False
+        self.was_typing = False
         self.events = queue.Queue()
 
         try:
@@ -700,9 +701,10 @@ class Bubble:
     # -------------------------------------------------------------- 麦克风
 
     def _mic(self):
-        # 只看"此刻"焦点在不在输入框。这里**只提醒、不设锁**：
-        # lock 的语义是"有一条消息在等回复"，没发消息就设锁会永远解不开。
-        if self.field_focused:
+        # 用 _press 里记下的"按下前"焦点状态：_grab 会把焦点交出去，
+        # 这里再看 field_focused 就已经是 False 了，永远不成立。
+        # 这里**只提醒、不设锁**：lock 的语义是"有一条消息在等回复"。
+        if getattr(self, "was_typing", False) or self.field_focused:
             self._say("打字中，点空白取消")
             return
         if self.lock == "text":
