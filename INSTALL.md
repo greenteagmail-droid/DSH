@@ -54,36 +54,36 @@ Python 侧的两个虚拟环境（插件会自动找，也可以用环境变量�
 ```powershell
 # OCR 环境
 python -m venv ~/.dsh/bionic/ocr-venv
-~/.dsh/bionic/ocr-venv/Scripts/pip install "rapidocr_onnxruntime==1.4.4" "onnxruntime==1.31.1"
+~/.dsh/bionic/ocr-venv/Scripts/pip install "rapidocr_onnxruntime>=1.4.4" "onnxruntime>=1.31.1"
 
 # 语音识别环境
 python -m venv ~/.dsh/bionic/asr-venv
-~/.dsh/bionic/asr-venv/Scripts/pip install "sherpa-onnx==2.0.1"
+~/.dsh/bionic/asr-venv/Scripts/pip install "sherpa-onnx>=2.0.1"
 # 再把 SenseVoice 模型解压到：
 #   ~/.dsh/bionic/models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/
 # 里面要有 model.int8.onnx 和 tokens.txt
 ```
 
-### 为什么写死版本
+### 版本策略：只卡下限，向上兼容
 
-Python 这几样东西版本一飘就容易出怪问题：numpy 大版本一升，RapidOCR 的 onnxruntime 可能直接 import 失败；sherpa-onnx 换了 API，转写脚本会静默返回空。
+插件**不锁死具体版本**，只要求不低于下面这些下限。新版本只要能 import 成功、doctor 两项是绿的，就说明可用——升级到大版本也照跑，不用回来改配置。
 
-下面这套组合**实测跑通过**（OCR 149/149 成功、SenseVoice 正常转写），装机时优先按它来：
+| 组件 | 最低版本 | 实测过的版本 | 说明 |
+|---|---|---|---|
+| Python | 3.10 | 3.12.14 | `python -V` 确认 |
+| rapidocr_onnxruntime | 1.4.4 | 1.4.4 | 装了它才有高精度 OCR |
+| onnxruntime | 1.31.1 | 1.31.1 | RapidOCR 的推理后端 |
+| sherpa-onnx | 2.0.1 | 2.0.1 | SenseVoice 推理 |
+| FFmpeg | 7.0.0 | 9.0.2 full build | 必须含 `ddagrab` + `mjpeg` |
+| Node.js | 20.0.0 | 24.x | 跟着 DSH 走 |
+| Windows PowerShell | 5.1 | 5.1 | 必须是 5.1，不能用 pwsh 7 |
 
-| 组件 | 实测可用版本 | 说明 |
-|---|---|---|
-| Python | 3.12.x（3.10 以上都行） | `python -V` 确认 |
-| rapidocr_onnxruntime | 1.4.4 | 装了它才有高精度 OCR |
-| onnxruntime | 1.31.1 | RapidOCR 的推理后端 |
-| numpy | 2.5.4 | 跟着 onnxruntime 来，别单独升 |
-| sherpa-onnx | 2.0.1 | SenseVoice 推理 |
-| FFmpeg | 9.0.2 full build | 必须含 `ddagrab` + `mjpeg` |
+**装不上怎么办**：Python 版本太老时 `>=` 指定的版本可能没有轮子，换成能装上的新版本即可。装完跑 `node src/doctor.js` 验证：
 
-**装不上怎么办**：Python 版本太老/太新时，`==` 指定的版本可能没有轮子。这时去掉版本号装最新，然后跑 `node src/doctor.js` 验证：
-- `RapidOCR ... rapidocr_onnxruntime 可导入` 说明 OCR 通了
-- `语音识别 ... SenseVoice 可导入` 说明 ASR 通了
+- `RapidOCR ... rapidocr <版本> onnxruntime <版本>` 说明 OCR 通了
+- `语音识别 ... sherpa <版本> SenseVoice 可导入` 说明 ASR 通了
 
-两项都绿就说明这个组合在你的机器上可用，**不用强行对齐上表**。doctor 只卡最低版本（Node ≥ 20、FFmpeg ≥ 7、PowerShell ≥ 5.1、Python ≥ 3.10），不校验 pip 包的具体版本号。
+两项都绿就行，**版本比表里新完全没问题**。doctor 只卡下限，不校验具体版本号。
 
 ## 路径：插件会自己找，也可以手动指定
 
