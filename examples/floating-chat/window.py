@@ -424,8 +424,9 @@ class Bubble:
             return MIC_HOT_FG, MIC_HOT
         if self.icon_state in ("processing", "waiting"):
             return ICON_MUTED, "#12161d"
-        # 文本在用（焦点在输入框）或刚发出去还没回完，话筒都是灰的
-        if self.field_focused or self.lock == "text":
+        # 只有「文本已经发出去、还在等回复」才灰。
+        # 光标在输入框里不灰：麦克风优先，想说话随时能打断打字。
+        if self.lock == "text":
             return ICON_MUTED, "#12161d"
         return ICON, DOT_BACK
 
@@ -504,7 +505,8 @@ class Bubble:
         send_h = self.px(30)
         send_x2 = mic_cx - r - self.px(8)
         send_x1 = send_x2 - send_w
-        has_text = bool(self.field.get().strip())
+        # 只有「空闲 + 有字」才点亮；语音占着时发送键是灰的，点不动
+        has_text = bool(self.field.get().strip()) and self.icon_state == "idle"
         send_fill = ACCENT if has_text else DOT_BACK
         send_fg = "#ffffff" if has_text else ICON
         send_bg = self.canvas.create_polygon(
@@ -624,6 +626,10 @@ class Bubble:
             pass
 
     def _submit(self, _event=None, source="text"):
+        # 语音占着的时候不许发文字：这时输入框是灰的，
+        # 硬发会把「打了一半的字 + 转写结果」一起送出去。
+        if source != "voice" and self.icon_state != "idle":
+            return "break"
         text = self.field.get().strip()
         if not text:
             return "break"
@@ -830,9 +836,11 @@ class Bubble:
             self._say("没听到内容")
             self._set_state("idle")
             return
-        # 语音占着时输入框是 disabled，写之前先放开
+        # 语音结果**替换**输入框内容，不是插到已有文字前面。
+        # 以前 insert(0, ...) 会把「打了一半的字 + 转写结果」拼起来发出去。
         try:
             self.field.configure(state="normal")
+            self.field.delete(0, "end")
         except Exception:
             pass
         self.field.insert(0, text)
