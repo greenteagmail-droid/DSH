@@ -276,13 +276,52 @@ class Bubble:
     def _icon_font(self, size):
         return tkfont.Font(family=ICON_FONT, size=int(round(size * self.scale)))
 
+    def _hint_now(self):
+        """当前该显示在输入框里的提示（和 _render_bar 里用的是同一套判断）。"""
+        if self.lock == "voice" or self.icon_state in ("recording", "processing"):
+            return "语音中…"
+        return self.hint or ""
+
+    def _bar_width(self):
+        """展开态宽度：跟着名字和提示文字自己算，不让文字溢出窗口。
+
+        和名字那块的自适应同一个思路：先用字体量出真实像素宽度，
+        再把各段的宽度加起来，取「基础宽」和「内容宽」里较大的那个。
+        """
+        pad = self.px(10)
+        r = self.px(BAR_DOT) / 2.0
+        name_w = self._text_font(9, True).measure(self.title)
+        hint = self._hint_now()
+        hint_w = self._text_font(10).measure(hint) if hint else 0
+        # 输入框至少能放下提示，再多留 26px 呼吸位
+        field_w = max(self.px(120), hint_w + self.px(26))
+        total = (pad * 2            # 左右内边距
+                 + r * 2            # 状态灯
+                 + self.px(8)       # 灯与名字
+                 + name_w           # 名字
+                 + self.px(10)      # 名字与输入框
+                 + field_w          # 输入框
+                 + self.px(8)       # 输入框与发送
+                 + self.px(54)      # 发送胶囊
+                 + self.px(8)
+                 + r * 2            # 话筒
+                 + self.px(40)
+                 + r * 2            # 收起
+                 + self.px(6))
+        # 别忘了屏幕边界：再长也不能撑出屏幕
+        try:
+            limit = self.win.winfo_screenwidth() - self.px(24)
+        except Exception:
+            limit = 1200
+        return max(self.px(BAR_W), min(int(total), limit))
+
     def _size(self):
         if self.collapsed:
             # 收起态有两种朝向：贴着左右边时竖排，拖回中间横排。
             if self.vertical:
                 return self.px(STRIP_H), self.px(STRIP_W)
             return self.px(STRIP_W), self.px(STRIP_H)
-        return self.px(BAR_W), self.px(BAR_H)
+        return self._bar_width(), self.px(BAR_H)
 
     def _compose(self):
         self.canvas = tk.Canvas(self.win, bg=INK, highlightthickness=0, bd=0)
